@@ -8,11 +8,13 @@ export function createFighterPreview(fighter, position) {
   });
 
   // todo: show fighter info (image, name, health, etc.)
-
+  const addFighter = createFighterImage(fighter);
+  fighterElement.append(addFighter);
+  
   return fighterElement;
 }
 
-export function createFighterImage(fighter) {
+ export function createFighterImage(fighter) {
   const { source, name } = fighter;
   const attributes = { 
     src: source, 
@@ -25,5 +27,5 @@ export function createFighterImage(fighter) {
     attributes,
   });
 
-  return imgElement;
+  return imgElement; 
 }
