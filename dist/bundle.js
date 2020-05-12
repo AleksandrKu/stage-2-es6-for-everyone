@@ -697,6 +697,27 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./src/constants/controls.js":
+/*!***********************************!*\
+  !*** ./src/constants/controls.js ***!
+  \***********************************/
+/*! exports provided: controls */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "controls", function() { return controls; });
+const controls = {
+  PlayerOneAttack: 'KeyA',
+  PlayerOneBlock: 'KeyD',
+  PlayerTwoAttack: 'KeyJ',
+  PlayerTwoBlock: 'KeyL',
+  PlayerOneCriticalHitCombination: ['KeyQ', 'KeyW', 'KeyE'],
+  PlayerTwoCriticalHitCombination: ['KeyU', 'KeyI', 'KeyO']
+};
+
+/***/ }),
+
 /***/ "./src/javascript/app.js":
 /*!*******************************!*\
   !*** ./src/javascript/app.js ***!
@@ -754,15 +775,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "renderArena", function() { return renderArena; });
 /* harmony import */ var _helpers_domHelper__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../helpers/domHelper */ "./src/javascript/helpers/domHelper.js");
 /* harmony import */ var _fighterPreview__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./fighterPreview */ "./src/javascript/components/fighterPreview.js");
+/* harmony import */ var _fight__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./fight */ "./src/javascript/components/fight.js");
+/* harmony import */ var _modal_winner__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./modal/winner */ "./src/javascript/components/modal/winner.js");
 
 
-function renderArena(selectedFighters) {
+
+
+async function renderArena(selectedFighters) {
   const root = document.getElementById('root');
   const arena = createArena(selectedFighters);
   root.innerHTML = '';
   root.append(arena); // todo:
   // - start the fight
-  // - when fight is finished show winner
+
+  const winner = await Object(_fight__WEBPACK_IMPORTED_MODULE_2__["fight"])(...selectedFighters); // - when fight is finished show winner
+
+  Object(_modal_winner__WEBPACK_IMPORTED_MODULE_3__["showWinnerModal"])(winner);
 }
 
 function createArena(selectedFighters) {
@@ -844,6 +872,132 @@ function createFighter(fighter, position) {
 
 /***/ }),
 
+/***/ "./src/javascript/components/fight.js":
+/*!********************************************!*\
+  !*** ./src/javascript/components/fight.js ***!
+  \********************************************/
+/*! exports provided: fight, getDamage, getHitPower, getBlockPower */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "fight", function() { return fight; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getDamage", function() { return getDamage; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getHitPower", function() { return getHitPower; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getBlockPower", function() { return getBlockPower; });
+/* harmony import */ var _constants_controls__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../constants/controls */ "./src/constants/controls.js");
+
+async function fight(firstFighter, secondFighter) {
+  return new Promise(resolve => {
+    // resolve the promise with the winner when fight is over
+    console.log('firstFighter', firstFighter.name, ' ', firstFighter.health, ' ', firstFighter.attack);
+    console.log('secondFighter', secondFighter.name, ' ', secondFighter.health, ' ', secondFighter.attack);
+    let isFirstPlayer = false;
+    let isSecondPlayer = false;
+    let firstPlayer = {};
+    let secondPlayer = {};
+    const firstFighterHealth = firstFighter.health;
+    const secondFighterHealth = secondFighter.health;
+
+    const setFirstFighterCriticalKeys = () => new Set(_constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerOneCriticalHitCombination);
+
+    let firstFighterCriticalKeys = setFirstFighterCriticalKeys();
+    let isFirstTimeoutCriticalKeys = false;
+
+    const setSecondFighterCriticalKeys = () => new Set(_constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerTwoCriticalHitCombination);
+
+    let secondFighterCriticalKeys = setSecondFighterCriticalKeys();
+    let isSecondTimeoutCriticalKeys = false;
+    document.addEventListener('keydown', function (event) {
+      if (!isFirstPlayer) {
+        if (_constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerOneCriticalHitCombination.includes(event.code) && !isFirstTimeoutCriticalKeys) {
+          firstFighterCriticalKeys.delete(event.code);
+        }
+
+        if (firstFighterCriticalKeys.size === 0 && !isFirstTimeoutCriticalKeys) {
+          firstFighter.attack = firstFighter.attack * 2;
+          firstPlayer.attack = getHitPower(firstFighter);
+          firstFighter.attack = firstFighter.attack / 2;
+          firstPlayer.isCriticalAttack = true;
+          isFirstPlayer = true;
+          isFirstTimeoutCriticalKeys = true;
+          firstFighterCriticalKeys = setFirstFighterCriticalKeys();
+          setTimeout(() => {
+            isFirstTimeoutCriticalKeys = false;
+          }, 10000);
+        }
+
+        if (event.code === _constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerOneAttack) firstPlayer.attack = getHitPower(firstFighter);
+        if (event.code === _constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerOneBlock) firstPlayer.defense = getBlockPower(firstFighter);
+        isFirstPlayer = !!(Object.keys(firstPlayer).length > 0);
+      }
+
+      if (!isSecondPlayer) {
+        if (_constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerTwoCriticalHitCombination.includes(event.code) && !isSecondTimeoutCriticalKeys) {
+          secondFighterCriticalKeys.delete(event.code);
+        }
+
+        if (secondFighterCriticalKeys.size === 0 && !isSecondTimeoutCriticalKeys) {
+          secondFighter.attack = secondFighter.attack * 2;
+          secondPlayer.attack = getHitPower(secondFighter);
+          secondFighter.attack = secondFighter.attack / 2;
+          secondPlayer.isCriticalAttack = true;
+          isSecondPlayer = true;
+          isSecondTimeoutCriticalKeys = true;
+          secondFighterCriticalKeys = setSecondFighterCriticalKeys();
+          setTimeout(() => {
+            isSecondTimeoutCriticalKeys = false;
+          }, 10000);
+        }
+
+        if (event.code === _constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerTwoAttack) secondPlayer.attack = getHitPower(secondFighter);
+        if (event.code === _constants_controls__WEBPACK_IMPORTED_MODULE_0__["controls"].PlayerTwoBlock) secondPlayer.defense = getBlockPower(secondFighter);
+        isSecondPlayer = !!(Object.keys(secondPlayer).length > 0);
+      }
+
+      if (isFirstPlayer && isSecondPlayer) {
+        if (firstPlayer.isCriticalAttack) secondPlayer.defense = 0;
+        if (secondPlayer.isCriticalAttack) firstPlayer.defense = 0;
+        firstFighter.health = firstFighter.health - getDamage(secondPlayer.attack, firstPlayer.defense);
+        secondFighter.health = secondFighter.health - getDamage(firstPlayer.attack, secondPlayer.defense);
+        firstFighterCriticalKeys = setFirstFighterCriticalKeys();
+        secondFighterCriticalKeys = setSecondFighterCriticalKeys();
+        isFirstPlayer = false;
+        isSecondPlayer = false;
+        firstPlayer = {};
+        secondPlayer = {};
+        console.log('firstFighter attack', firstFighter.attack, ' defense', firstFighter.defense);
+        console.log('secondFighter attack', secondFighter.attack, ' defense', secondFighter.defense);
+        console.log('firstFighter', firstFighter.name, ' ', firstFighter.health);
+        console.log('secondFighter', secondFighter.name, ' ', secondFighter.health);
+        const leftIndicator = 100 * firstFighter.health / firstFighterHealth;
+        const rightIndicator = 100 * secondFighter.health / secondFighterHealth;
+        document.getElementById('left-fighter-indicator').style.width = `${leftIndicator}%`;
+        document.getElementById('right-fighter-indicator').style.width = `${rightIndicator}%`;
+        if (firstFighter.health <= 0) resolve(secondFighter);
+        if (secondFighter.health <= 0) resolve(firstFighter);
+      }
+    });
+  });
+}
+function getDamage(attacker = 0, defender = 0) {
+  // return damage
+  const damage = attacker - defender;
+  return damage >= 0 ? damage : 0;
+}
+function getHitPower(fighter) {
+  // return hit power
+  const criticalHitChance = 1 + Math.random();
+  return fighter.attack * criticalHitChance;
+}
+function getBlockPower(fighter) {
+  // return block power
+  const dodgeChance = 1 + Math.random();
+  return fighter.defense * dodgeChance;
+}
+
+/***/ }),
+
 /***/ "./src/javascript/components/fighterPreview.js":
 /*!*****************************************************!*\
   !*** ./src/javascript/components/fighterPreview.js ***!
@@ -864,6 +1018,8 @@ function createFighterPreview(fighter, position) {
     className: `fighter-preview___root ${positionClassName}`
   }); // todo: show fighter info (image, name, health, etc.)
 
+  const addFighter = createFighterImage(fighter);
+  fighterElement.append(addFighter);
   return fighterElement;
 }
 function createFighterImage(fighter) {
@@ -901,6 +1057,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _arena__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./arena */ "./src/javascript/components/arena.js");
 /* harmony import */ var _resources_versus_png__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../resources/versus.png */ "./resources/versus.png");
 /* harmony import */ var _fighterPreview__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./fighterPreview */ "./src/javascript/components/fighterPreview.js");
+/* harmony import */ var _services_fightersService__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../services/fightersService */ "./src/javascript/services/fightersService.js");
+
 
 
 
@@ -917,14 +1075,25 @@ function createFightersSelector() {
   };
 }
 const fighterDetailsMap = new Map();
-async function getFighterInfo(fighterId) {// get fighter info from fighterDetailsMap or from service and write it to fighterDetailsMap
+async function getFighterInfo(fighterId) {
+  // get fighter info from fighterDetailsMap or from service and write it to fighterDetailsMap
+  if (!fighterDetailsMap.has(fighterId)) {
+    try {
+      const fighterDetails = await _services_fightersService__WEBPACK_IMPORTED_MODULE_4__["fighterService"].getFighterDetails(fighterId);
+      fighterDetailsMap.set(fighterId, fighterDetails);
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
+
+  return fighterDetailsMap.get(fighterId);
 }
 
 function renderSelectedFighters(selectedFighters) {
   const fightersPreview = document.querySelector('.preview-container___root');
   const [playerOne, playerTwo] = selectedFighters;
-  const firstPreview = Object(_fighterPreview__WEBPACK_IMPORTED_MODULE_3__["createFighterPreview"])(playerOne, 'left');
-  const secondPreview = Object(_fighterPreview__WEBPACK_IMPORTED_MODULE_3__["createFighterPreview"])(playerTwo, 'right');
+  const firstPreview = playerOne ? Object(_fighterPreview__WEBPACK_IMPORTED_MODULE_3__["createFighterPreview"])(playerOne, 'left') : null;
+  const secondPreview = playerTwo ? Object(_fighterPreview__WEBPACK_IMPORTED_MODULE_3__["createFighterPreview"])(playerTwo, 'right') : null;
   const versusBlock = createVersusBlock(selectedFighters);
   fightersPreview.innerHTML = '';
   fightersPreview.append(firstPreview, versusBlock, secondPreview);
@@ -1027,6 +1196,115 @@ function createImage(fighter) {
     attributes
   });
   return imgElement;
+}
+
+/***/ }),
+
+/***/ "./src/javascript/components/modal/modal.js":
+/*!**************************************************!*\
+  !*** ./src/javascript/components/modal/modal.js ***!
+  \**************************************************/
+/*! exports provided: showModal */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "showModal", function() { return showModal; });
+/* harmony import */ var _helpers_domHelper__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../helpers/domHelper */ "./src/javascript/helpers/domHelper.js");
+
+function showModal({
+  title,
+  bodyElement,
+  onClose = () => {}
+}) {
+  const root = getModalContainer();
+  const modal = createModal({
+    title,
+    bodyElement,
+    onClose
+  });
+  root.append(modal);
+}
+
+function getModalContainer() {
+  return document.getElementById('root');
+}
+
+function createModal({
+  title,
+  bodyElement,
+  onClose
+}) {
+  const layer = Object(_helpers_domHelper__WEBPACK_IMPORTED_MODULE_0__["createElement"])({
+    tagName: 'div',
+    className: 'modal-layer'
+  });
+  const modalContainer = Object(_helpers_domHelper__WEBPACK_IMPORTED_MODULE_0__["createElement"])({
+    tagName: 'div',
+    className: 'modal-root'
+  });
+  const header = createHeader(title, onClose);
+  modalContainer.append(header, bodyElement);
+  layer.append(modalContainer);
+  return layer;
+}
+
+function createHeader(title, onClose) {
+  const headerElement = Object(_helpers_domHelper__WEBPACK_IMPORTED_MODULE_0__["createElement"])({
+    tagName: 'div',
+    className: 'modal-header'
+  });
+  const titleElement = Object(_helpers_domHelper__WEBPACK_IMPORTED_MODULE_0__["createElement"])({
+    tagName: 'span'
+  });
+  const closeButton = Object(_helpers_domHelper__WEBPACK_IMPORTED_MODULE_0__["createElement"])({
+    tagName: 'div',
+    className: 'close-btn'
+  });
+  titleElement.innerText = title;
+  closeButton.innerText = '×';
+
+  const close = () => {
+    hideModal();
+    onClose();
+  };
+
+  closeButton.addEventListener('click', close);
+  headerElement.append(titleElement, closeButton);
+  return headerElement;
+}
+
+function hideModal() {
+  const modal = document.getElementsByClassName('modal-layer')[0];
+  modal === null || modal === void 0 ? void 0 : modal.remove();
+}
+
+/***/ }),
+
+/***/ "./src/javascript/components/modal/winner.js":
+/*!***************************************************!*\
+  !*** ./src/javascript/components/modal/winner.js ***!
+  \***************************************************/
+/*! exports provided: showWinnerModal */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "showWinnerModal", function() { return showWinnerModal; });
+/* harmony import */ var _modal_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./modal.js */ "./src/javascript/components/modal/modal.js");
+
+function showWinnerModal(fighter) {
+  // call showModal function 
+  const title = fighter.name + ' winner!';
+  const bodyElement = ' Click cross to start new game.';
+
+  const onClose = () => window.location.reload();
+
+  Object(_modal_js__WEBPACK_IMPORTED_MODULE_0__["showModal"])({
+    title,
+    bodyElement,
+    onClose
+  });
 }
 
 /***/ }),
@@ -1208,8 +1486,17 @@ class FighterService {
     }
   }
 
-  async getFighterDetails(id) {// todo: implement this method
-    // endpoint - `details/fighter/${id}.json`;
+  async getFighterDetails(id) {
+    // todo: implement this method
+    // endpoint - `details/fighter/${id}.json`;    
+    try {
+      const endpoint = `../../../resources/api/details/fighter/${id}.json`;
+      return fetch(endpoint).then(response => response.ok ? response.json() : Promise.reject(Error('Failed to load'))).then(result => result).catch(error => {
+        throw error;
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
 }
