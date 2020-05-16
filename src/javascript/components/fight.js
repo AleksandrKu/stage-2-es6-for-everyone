@@ -7,8 +7,8 @@ import { controls } from '../../constants/controls';
 export async function fight(firstFighter, secondFighter) {
   return new Promise((resolve) => {
     // resolve the promise with the winner when fight is over
-    console.log('firstFighter', firstFighter.name, ' ', firstFighter.health, ' ', firstFighter.attack);
-    console.log('secondFighter', secondFighter.name, ' ', secondFighter.health, ' ', secondFighter.attack);
+    firstFighter.attack = firstFighter.attack ? firstFighter.attack : firstFighter.power;
+    secondFighter.attack = secondFighter.attack ? secondFighter.attack : secondFighter.power;
 
     let isFirstPlayer = false;
     let isSecondPlayer = false;
@@ -76,13 +76,13 @@ export async function fight(firstFighter, secondFighter) {
         secondFighterCriticalKeys = setSecondFighterCriticalKeys();
         isFirstPlayer = false;
         isSecondPlayer = false;
+        console.log('/nfirstFighter attack:', firstPlayer.attack, ' defense:', firstPlayer.defense, ' health:', firstFighter.health);
+        console.log('secondFighter attack:', secondPlayer.attack, ' defense:', secondPlayer.defense, ' health:', secondFighter.health);
         firstPlayer = {};
         secondPlayer = {};
-        console.log('firstFighter attack', firstFighter.attack, ' defense', firstFighter.defense);
-        console.log('secondFighter attack', secondFighter.attack, ' defense', secondFighter.defense);
         
-        console.log('firstFighter', firstFighter.name, ' ', firstFighter.health);
-        console.log('secondFighter', secondFighter.name, ' ', secondFighter.health);
+        //console.log('firstFighter', firstFighter.name, ' ', firstFighter.health);
+        //console.log('secondFighter', secondFighter.name, ' ', secondFighter.health);
         const leftIndicator = (100 * firstFighter.health) / firstFighterHealth;
         const rightIndicator = (100 * secondFighter.health) / secondFighterHealth;
         document.getElementById('left-fighter-indicator').style.width = `${leftIndicator}%`;
