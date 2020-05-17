@@ -697,6 +697,23 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./src/constants/config.js":
+/*!*********************************!*\
+  !*** ./src/constants/config.js ***!
+  \*********************************/
+/*! exports provided: api */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "api", function() { return api; });
+const api = {
+  url: 'https://game-fighters-admin.herokuapp.com/api/'
+};
+
+
+/***/ }),
+
 /***/ "./src/constants/controls.js":
 /*!***********************************!*\
   !*** ./src/constants/controls.js ***!
@@ -890,8 +907,8 @@ __webpack_require__.r(__webpack_exports__);
 async function fight(firstFighter, secondFighter) {
   return new Promise(resolve => {
     // resolve the promise with the winner when fight is over
-    console.log('firstFighter', firstFighter.name, ' ', firstFighter.health, ' ', firstFighter.attack);
-    console.log('secondFighter', secondFighter.name, ' ', secondFighter.health, ' ', secondFighter.attack);
+    firstFighter.attack = firstFighter.attack ? firstFighter.attack : firstFighter.power;
+    secondFighter.attack = secondFighter.attack ? secondFighter.attack : secondFighter.power;
     let isFirstPlayer = false;
     let isSecondPlayer = false;
     let firstPlayer = {};
@@ -964,12 +981,12 @@ async function fight(firstFighter, secondFighter) {
         secondFighterCriticalKeys = setSecondFighterCriticalKeys();
         isFirstPlayer = false;
         isSecondPlayer = false;
+        console.log('/nfirstFighter attack:', firstPlayer.attack, ' defense:', firstPlayer.defense, ' health:', firstFighter.health);
+        console.log('secondFighter attack:', secondPlayer.attack, ' defense:', secondPlayer.defense, ' health:', secondFighter.health);
         firstPlayer = {};
-        secondPlayer = {};
-        console.log('firstFighter attack', firstFighter.attack, ' defense', firstFighter.defense);
-        console.log('secondFighter attack', secondFighter.attack, ' defense', secondFighter.defense);
-        console.log('firstFighter', firstFighter.name, ' ', firstFighter.health);
-        console.log('secondFighter', secondFighter.name, ' ', secondFighter.health);
+        secondPlayer = {}; //console.log('firstFighter', firstFighter.name, ' ', firstFighter.health);
+        //console.log('secondFighter', secondFighter.name, ' ', secondFighter.health);
+
         const leftIndicator = 100 * firstFighter.health / firstFighterHealth;
         const rightIndicator = 100 * secondFighter.health / secondFighterHealth;
         document.getElementById('left-fighter-indicator').style.width = `${leftIndicator}%`;
@@ -1320,8 +1337,11 @@ function showWinnerModal(fighter) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "callApi", function() { return callApi; });
 /* harmony import */ var _mockData__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./mockData */ "./src/javascript/helpers/mockData.js");
+/* harmony import */ var _constants_config__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants/config */ "./src/constants/config.js");
 
-const API_URL = 'https://api.github.com/repos/binary-studio-academy/stage-2-es6-for-everyone/contents/resources/api/';
+ //const API_URL = 'https://api.github.com/repos/binary-studio-academy/stage-2-es6-for-everyone/contents/resources/api/';
+
+const API_URL = _constants_config__WEBPACK_IMPORTED_MODULE_1__["api"].url;
 const useMockAPI = true;
 
 async function callApi(endpoint, method) {
@@ -1329,9 +1349,23 @@ async function callApi(endpoint, method) {
   const options = {
     method
   };
-  return useMockAPI ? fakeCallApi(endpoint) : fetch(url, options).then(response => response.ok ? response.json() : Promise.reject(Error('Failed to load'))).then(result => JSON.parse(atob(result.content))).catch(error => {
-    throw error;
-  });
+  let fightersFromApi;
+
+  try {
+    const response = await fetch(url, options);
+
+    if (response.ok) {
+      fightersFromApi = await response.json();
+
+      if (fightersFromApi && Array.isArray(fightersFromApi) && fightersFromApi.length > 0) {
+        return fightersFromApi;
+      }
+    }
+  } catch (error) {
+    fightersFromApi = null;
+  }
+
+  return fakeCallApi('fighters.json');
 }
 
 async function fakeCallApi(endpoint) {
@@ -1473,12 +1507,16 @@ const fightersDetails = [{
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "fighterService", function() { return fighterService; });
 /* harmony import */ var _helpers_apiHelper__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../helpers/apiHelper */ "./src/javascript/helpers/apiHelper.js");
+/* harmony import */ var _constants_config__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants/config */ "./src/constants/config.js");
 
+
+const API_URL = _constants_config__WEBPACK_IMPORTED_MODULE_1__["api"].url;
 
 class FighterService {
   async getFighters() {
     try {
-      const endpoint = 'fighters.json';
+      //const endpoint = 'fighters.json';
+      const endpoint = 'fighters';
       const apiResult = await Object(_helpers_apiHelper__WEBPACK_IMPORTED_MODULE_0__["callApi"])(endpoint, 'GET');
       return apiResult;
     } catch (error) {
@@ -1490,7 +1528,8 @@ class FighterService {
     // todo: implement this method
     // endpoint - `details/fighter/${id}.json`;    
     try {
-      const endpoint = `../../../resources/api/details/fighter/${id}.json`;
+      //const endpoint = `../../../resources/api/details/fighter/${id}.json`;
+      const endpoint = `${API_URL}fighters/${id}`;
       return fetch(endpoint).then(response => response.ok ? response.json() : Promise.reject(Error('Failed to load'))).then(result => result).catch(error => {
         throw error;
       });
